@@ -163,7 +163,7 @@ export default function TravelCalculator() {
       try {
         const body = { model, max_tokens: 1500, messages: [{ role: "user", content: prompt }] };
         if (!isFast) body.tools = tools;
-        response = await fetch("https://api.anthropic.com/v1/messages", {
+        response = await fetch("/api/chat", {
           method: "POST",
           signal: controller.signal,
           headers: { "Content-Type": "application/json" },
