@@ -234,7 +234,7 @@ export default function TravelCalculator() {
     <div style={{ minHeight: "100vh", background: "linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%)", fontFamily: "'Georgia', serif", color: "#f0ece4" }}>
 
       {/* ── HEADER ── */}
-      <div style={{ background: "rgba(255,255,255,0.03)", borderBottom: "1px solid rgba(255,255,255,0.08)", padding: "16px 32px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <div style={{ background: "rgba(255,255,255,0.03)", borderBottom: "1px solid rgba(255,255,255,0.08)", padding: "14px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "8px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
           <div style={{ fontSize: "28px" }}>🌍</div>
           <div>
@@ -258,13 +258,13 @@ export default function TravelCalculator() {
         )}
       </div>
 
-      <div style={{ maxWidth: "980px", margin: "0 auto", padding: "24px 18px" }}>
+      <div style={{ maxWidth: "980px", margin: "0 auto", padding: "max(16px, env(safe-area-inset-top)) 16px 32px" }}>
 
         {/* ── FORM ── */}
         <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.09)", borderRadius: "20px", padding: "24px", marginBottom: "20px" }}>
 
           {/* Travel type toggle */}
-          <div style={{ display: "flex", gap: "10px", marginBottom: "22px" }}>
+          <div style={{ display: "flex", gap: "8px", marginBottom: "16px", flexDirection: "column" }}>
             {[
               ["independent", "🎒", "Самостоятельное путешествие", "Сам покупаю билеты, бронирую отель, организую маршрут"],
               ["tour", "📦", "Тур через туроператора", "Пакетный тур: чартер + отель + трансфер включены"]
@@ -321,7 +321,7 @@ export default function TravelCalculator() {
           </div>
 
           {/* Fields */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "14px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "12px" }}>
             <div>
               <label style={labelStyle}>ОТКУДА</label>
               <input value={form.departureCity} onChange={e => setForm({...form, departureCity: e.target.value})} placeholder="Москва..." style={inputStyle}/>
@@ -429,7 +429,7 @@ export default function TravelCalculator() {
 
             {/* Dashboard */}
             {activeTab === "dashboard" && (
-              <div style={{ display:"grid", gridTemplateColumns:"1fr 1.6fr", gap:"14px" }}>
+              <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(280px, 1fr))", gap:"14px" }}>
                 <div style={{ background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:"14px", padding:"20px", display:"flex", flexDirection:"column", alignItems:"center" }}>
                   <div style={{ fontSize:"11px", fontWeight:"600", color:"rgba(240,236,228,0.5)", marginBottom:"14px", alignSelf:"flex-start" }}>СТРУКТУРА РАСХОДОВ</div>
                   <DonutChart data={chartData} total={result.grandTotal}/>
@@ -455,7 +455,7 @@ export default function TravelCalculator() {
                 </div>
                 <div style={{ gridColumn:"1/-1", background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:"14px", padding:"20px" }}>
                   <div style={{ fontSize:"11px", fontWeight:"600", color:"rgba(240,236,228,0.5)", marginBottom:"14px" }}>НА 1 ЧЕЛОВЕКА ПО КАТЕГОРИЯМ</div>
-                  <div style={{ display:"grid", gridTemplateColumns:"repeat(6,1fr)", gap:"10px" }}>
+                  <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(80px, 1fr))", gap:"8px" }}>
                     {chartData.map(d => (
                       <div key={d.key} style={{ background:"rgba(255,255,255,0.04)", borderRadius:"10px", padding:"12px 8px", textAlign:"center", border:`1px solid ${d.color}22` }}>
                         <div style={{ fontSize:"22px", marginBottom:"5px" }}>{d.icon}</div>
@@ -470,7 +470,7 @@ export default function TravelCalculator() {
 
             {/* Details */}
             {activeTab === "details" && (
-              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"12px" }}>
+              <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(260px, 1fr))", gap:"12px" }}>
                 {Object.entries(result.categories||{}).map(([key,cat]) => {
                   const cfg = CATEGORY_CONFIG[key]||{icon:"💡",name:key,color:"#888"};
                   const pct = Math.round((cat.total/result.grandTotal)*100);
@@ -509,7 +509,7 @@ export default function TravelCalculator() {
                       ? "Бюджет рассчитан на основе открытых цен — билеты, отели и сервисы бронируются напрямую."
                       : "Бюджет рассчитан по ценам туроператоров. Пакетный тур включает чартерный перелёт, трансфер и отель."}
                   </div>
-                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:"10px" }}>
+                  <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(160px, 1fr))", gap:"8px" }}>
                     {(result.sources||[]).map((s, i) => (
                       <div key={i} style={{ background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.09)", borderRadius:"10px", padding:"14px" }}>
                         <div style={{ display:"flex", alignItems:"center", gap:"7px", marginBottom:"5px" }}>
@@ -530,7 +530,7 @@ export default function TravelCalculator() {
 
             {/* Tips */}
             {activeTab === "tips" && (
-              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"14px" }}>
+              <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(260px, 1fr))", gap:"12px" }}>
                 {result.tips?.length > 0 && (
                   <div style={{ background:"rgba(99,179,237,0.06)", border:"1px solid rgba(99,179,237,0.15)", borderRadius:"13px", padding:"18px" }}>
                     <div style={{ fontSize:"13px", fontWeight:"600", marginBottom:"12px", color:"#90cdf4" }}>💡 Советы по экономии</div>
@@ -573,7 +573,7 @@ export default function TravelCalculator() {
           </div>
         )}
       </div>
-      <style>{`@keyframes fadeIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}input::placeholder{color:rgba(240,236,228,0.22)}input:focus,select:focus{border-color:rgba(249,217,118,0.4)!important}`}</style>
+      <style>{`@keyframes fadeIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}input::placeholder{color:rgba(240,236,228,0.22)}input:focus,select:focus{border-color:rgba(249,217,118,0.4)!important}*{-webkit-tap-highlight-color:transparent;box-sizing:border-box}body{overscroll-behavior-y:contain}button{touch-action:manipulation}`}</style>
     </div>
   );
 }
