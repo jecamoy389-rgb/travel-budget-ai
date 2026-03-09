@@ -87,7 +87,7 @@ function BarRow({ label, icon, color, pct, formatted }) {
 export default function TravelCalculator() {
   const [form, setForm] = useState({
     destination: "", departureCity: "", startDate: "", endDate: "",
-    people: 2, budget_class: "economy", currency: "USD", travel_type: "independent"
+    people: 2, budget_class: "economy", currency: "USD", travel_type: "independent", speed_mode: "fast"
   });
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
@@ -127,7 +127,6 @@ export default function TravelCalculator() {
       setError("Заполните все поля"); return;
     }
     setLoading(true); setError(null); setResult(null); setDebugInfo("");
-    setStatusText("🔍 Ищу актуальные цены...");
 
     const days = getDays();
     const season = getSeason();
@@ -135,56 +134,40 @@ export default function TravelCalculator() {
     const nPeople = form.people;
     const cur = form.currency;
     const isIndependent = form.travel_type === "independent";
-
-    const sourcesHint = isIndependent
-      ? "Ищи цены на: Aviasales/Skyscanner (авиабилеты), Booking.com/Airbnb (отели), Numbeo (стоимость жизни), TripAdvisor (развлечения), Rome2Rio (транспорт)."
-      : "Ищи цены на пакетные туры у туроператоров: Tez Tour, Coral Travel, Anex Tour, Pegas Touristik, Level.Travel, Onlinetours. Учитывай что пакетные туры включают перелёт+отель+трансфер в одной цене (чартеры дешевле регулярных рейсов).";
+    const isFast = form.speed_mode === "fast";
 
     const typeDesc = isIndependent
-      ? "самостоятельное путешествие (турист сам покупает билеты, бронирует отель, организует транспорт)"
-      : "тур через туроператора (пакетный тур: чартерный перелёт + отель + трансферы включены, экскурсии отдельно)";
+      ? "самостоятельная поездка (билеты + отель + транспорт отдельно)"
+      : "пакетный тур (чартер + отель + трансфер включены)";
 
-    // Для туроператоров — используем знания модели + 1 поиск для актуальности
-    // Для самостоятельных — полный веб-поиск
-    const searchInstruction = isIndependent
-      ? "Сделай 2-3 веб-поиска для актуальных цен на билеты и отели."
-      : "Используй свои знания о ценах туроператоров. Сделай максимум 1 веб-поиск если нужно уточнить цену тура.";
+    // Короткий промпт — меньше токенов = дешевле
+    const prompt = `Эксперт по туризму. Только русский язык. Бюджет поездки.
+Маршрут: ${form.departureCity} → ${form.destination}, ${form.startDate}–${form.endDate} (${days} дн), сезон: ${season}, ${nPeople} чел, ${budgetClass}, ${typeDesc}.
+Валюта: ${cur}.${isFast ? " Используй свои знания о ценах, без поиска." : " Сделай максимум 2 веб-поиска для актуальных цен."}
+Верни ТОЛЬКО JSON:
+{"destination":"...","summary":"...","travel_type":"${form.travel_type}","currency":"${cur}","sources":[{"name":"...","url":"...","category":"..."}],"categories":{"flights":{"total":0,"perPerson":0,"details":"..."},"hotel":{"total":0,"perPerson":0,"details":"..."},"transport":{"total":0,"perPerson":0,"details":"..."},"food":{"total":0,"perPerson":0,"details":"..."},"activities":{"total":0,"perPerson":0,"details":"..."},"misc":{"total":0,"perPerson":0,"details":"..."}},"grandTotal":0,"grandTotalPerPerson":0,"tips":["...","...","..."],"bestTime":"...","warnings":["..."]}
+Все числа реальные. grandTotal=сумма total. grandTotalPerPerson=grandTotal/${nPeople}.`;
 
-    const prompt = `Ты — эксперт по туризму. Отвечай ТОЛЬКО на русском языке. Составь бюджет поездки.
-ПАРАМЕТРЫ: из ${form.departureCity} в ${form.destination}, ${form.startDate} — ${form.endDate} (${days} дней), сезон: ${season}, туристов: ${nPeople}, класс: ${budgetClass}.
-ТИП ПОЕЗДКИ: ${typeDesc}.
-${searchInstruction}
-Все суммы в валюте ${cur}. Используй реальные актуальные цены 2024-2025.
-В поле "sources" укажи сайты-источники цен (название + URL).
-Верни ТОЛЬКО валидный JSON без лишнего текста:
-{"destination":"...","summary":"...","travel_type":"${form.travel_type}","currency":"${cur}","sources":[{"name":"Aviasales","url":"aviasales.ru","category":"авиабилеты"},{"name":"Booking.com","url":"booking.com","category":"отели"}],"categories":{"flights":{"total":500,"perPerson":250,"details":"..."},"hotel":{"total":400,"perPerson":200,"details":"..."},"transport":{"total":100,"perPerson":50,"details":"..."},"food":{"total":200,"perPerson":100,"details":"..."},"activities":{"total":150,"perPerson":75,"details":"..."},"misc":{"total":80,"perPerson":40,"details":"..."}},"grandTotal":1430,"grandTotalPerPerson":715,"tips":["...","...","..."],"bestTime":"...","warnings":["..."]}
-Замени все числа на реальные. grandTotal = сумма всех total. grandTotalPerPerson = grandTotal / ${nPeople}.`;
-
-    // Таймер отображения времени ожидания
     let elapsed = 0;
-    const ticker = setInterval(() => {
-      elapsed += 1;
-      setStatusText(`⏳ Анализирую... ${elapsed} сек`);
-    }, 1000);
-
-    // AbortController — таймаут 70 секунд
+    const ticker = setInterval(() => { elapsed++; setStatusText(`⏳ ${isFast ? "Считаю" : "Ищу цены"}... ${elapsed} сек`); }, 1000);
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 70000);
+    const timeoutId = setTimeout(() => controller.abort(), isFast ? 30000 : 70000);
+
+    // Выбор модели и инструментов
+    const model = isFast ? "claude-haiku-4-5-20251001" : "claude-sonnet-4-20250514";
+    const tools = isFast ? [] : [{ type: "web_search_20250305", name: "web_search" }];
 
     try {
-      setStatusText("🌐 Отправляю запрос...");
+      setStatusText(isFast ? "⚡ Считаю бюджет..." : "🌐 Ищу актуальные цены...");
       let response;
       try {
-        response = await fetch("/api/chat", {
+        const body = { model, max_tokens: 1500, messages: [{ role: "user", content: prompt }] };
+        if (!isFast) body.tools = tools;
+        response = await fetch("https://api.anthropic.com/v1/messages", {
           method: "POST",
           signal: controller.signal,
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            model: "claude-sonnet-4-20250514",
-            max_tokens: 2500,
-            tools: [{ type: "web_search_20250305", name: "web_search" }],
-            messages: [{ role: "user", content: prompt }]
-          })
+          body: JSON.stringify(body)
         });
       } catch (fetchErr) {
         if (fetchErr.name === "AbortError") {
@@ -219,7 +202,7 @@ ${searchInstruction}
         parsed.sources = isIndependent ? SOURCES_INDEPENDENT : SOURCES_TOUR;
       }
 
-      setResult({ ...parsed, days, people: nPeople, currency: cur, travel_type: form.travel_type });
+      setResult({ ...parsed, days, people: nPeople, currency: cur, travel_type: form.travel_type, speed_mode: form.speed_mode });
       setDebugInfo("");
       setActiveTab("dashboard");
     } catch (err) {
@@ -301,6 +284,30 @@ ${searchInstruction}
             ))}
           </div>
 
+          {/* Speed mode toggle */}
+          <div style={{ display: "flex", gap: "8px", marginBottom: "14px", padding: "4px", background: "rgba(255,255,255,0.04)", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.08)" }}>
+            {[
+              ["fast", "⚡", "Быстро", "Из базы знаний AI", "~$0.003 / запрос", "#6ee7b7"],
+              ["accurate", "🔍", "Актуальные цены", "Поиск в интернете", "~$0.02–0.05 / запрос", "#f9d976"]
+            ].map(([val, icon, title, desc, price, col]) => (
+              <button key={val} onClick={() => setForm({...form, speed_mode: val})}
+                style={{ flex: 1, padding: "10px 14px", borderRadius: "9px", border: "1px solid", textAlign: "left", cursor: "pointer", transition: "all 0.2s",
+                  borderColor: form.speed_mode === val ? col : "transparent",
+                  background: form.speed_mode === val ? `${col}15` : "transparent"
+                }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "2px" }}>
+                  <span style={{ fontSize: "14px" }}>{icon}</span>
+                  <span style={{ fontSize: "12px", fontWeight: "600", color: form.speed_mode === val ? col : "rgba(240,236,228,0.6)" }}>{title}</span>
+                  {form.speed_mode === val && <span style={{ marginLeft: "auto", fontSize: "10px", color: col, background: `${col}20`, padding: "1px 6px", borderRadius: "8px" }}>выбрано</span>}
+                </div>
+                <div style={{ paddingLeft: "20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontSize: "10px", color: "rgba(240,236,228,0.35)" }}>{desc}</span>
+                  <span style={{ fontSize: "10px", fontWeight: "600", color: form.speed_mode === val ? col : "rgba(240,236,228,0.25)" }}>{price}</span>
+                </div>
+              </button>
+            ))}
+          </div>
+
           {/* Source chips */}
           <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginBottom: "20px", padding: "10px 14px", background: "rgba(255,255,255,0.03)", borderRadius: "10px", border: "1px solid rgba(255,255,255,0.06)" }}>
             <span style={{ fontSize: "10px", color: "rgba(240,236,228,0.3)", letterSpacing: "1px", alignSelf: "center", marginRight: "4px" }}>ИСТОЧНИКИ ЦЕН:</span>
@@ -362,7 +369,7 @@ ${searchInstruction}
           {debugInfo && <div style={{ marginTop:"8px", padding:"8px 12px", background:"rgba(0,200,255,0.06)", border:"1px solid rgba(0,200,255,0.18)", borderRadius:"7px", color:"rgba(0,220,255,0.7)", fontSize:"10px", fontFamily:"monospace", wordBreak:"break-all" }}>🐛 {debugInfo}</div>}
 
           <button onClick={calculate} disabled={loading} style={{ marginTop:"20px", width:"100%", padding:"14px", background: loading?"rgba(249,217,118,0.2)":"linear-gradient(90deg,#f9d976,#f39f86)", border:"none", borderRadius:"11px", color:"#1a1630", fontSize:"14px", fontWeight:"700", cursor: loading?"not-allowed":"pointer" }}>
-            {loading ? statusText || "⏳ Анализирую..." : `🚀 Рассчитать бюджет — ${form.travel_type === "independent" ? "Самостоятельная поездка" : "Пакетный тур"}`}
+            {loading ? statusText || "⏳ Загружаю..." : `${form.speed_mode === "fast" ? "⚡" : "🔍"} Рассчитать бюджет — ${form.speed_mode === "fast" ? "Быстро" : "Актуальные цены"}`}
           </button>
         </div>
 
@@ -393,7 +400,14 @@ ${searchInstruction}
             <div style={{ background:"rgba(249,217,118,0.07)", border:"1px solid rgba(249,217,118,0.18)", borderRadius:"16px", padding:"18px 22px", marginBottom:"16px", display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:"12px" }}>
               <div>
                 <div style={{ fontSize:"17px", fontWeight:"700", marginBottom:"3px" }}>🗺️ {result.destination}</div>
-                <div style={{ fontSize:"11px", color:"rgba(240,236,228,0.4)" }}>{result.days} дней · {result.people} чел · {result.currency}</div>
+                <div style={{ fontSize:"11px", color:"rgba(240,236,228,0.4)", display:"flex", gap:"6px", alignItems:"center" }}>
+                {result.days} дней · {result.people} чел · {result.currency}
+                <span style={{ padding:"1px 7px", borderRadius:"8px", fontSize:"10px",
+                  background: result.speed_mode==="fast" ? "rgba(110,231,183,0.15)" : "rgba(249,217,118,0.15)",
+                  color: result.speed_mode==="fast" ? "#6ee7b7" : "#f9d976" }}>
+                  {result.speed_mode==="fast" ? "⚡ из базы знаний" : "🔍 актуальные цены"}
+                </span>
+              </div>
               </div>
               <div style={{ display:"flex", gap:"20px", alignItems:"center" }}>
                 {[["ИТОГО", result.grandTotal, "38px", "linear-gradient(90deg,#f9d976,#f39f86)"],["НА ЧЕЛОВЕКА", result.grandTotalPerPerson, "24px", "#f9d976"],["В ДЕНЬ/ЧЕЛ", result.grandTotalPerPerson/result.days, "24px", "#f39f86"]].map(([label, val, size, color], i) => (
