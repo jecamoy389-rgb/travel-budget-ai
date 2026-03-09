@@ -285,25 +285,21 @@ export default function TravelCalculator() {
           </div>
 
           {/* Speed mode toggle */}
-          <div style={{ display: "flex", gap: "8px", marginBottom: "14px", padding: "4px", background: "rgba(255,255,255,0.04)", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.08)" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "14px" }}>
             {[
-              ["fast", "⚡", "Быстро", "Из базы знаний AI", "~$0.003 / запрос", "#6ee7b7"],
-              ["accurate", "🔍", "Актуальные цены", "Поиск в интернете", "~$0.02–0.05 / запрос", "#f9d976"]
-            ].map(([val, icon, title, desc, price, col]) => (
+              ["fast", "⚡", "Быстро", "~$0.003 / запрос", "#6ee7b7"],
+              ["accurate", "🔍", "Актуальные цены", "~$0.02–0.05 / запрос", "#f9d976"]
+            ].map(([val, icon, title, price, col]) => (
               <button key={val} onClick={() => setForm({...form, speed_mode: val})}
-                style={{ flex: 1, padding: "10px 14px", borderRadius: "9px", border: "1px solid", textAlign: "left", cursor: "pointer", transition: "all 0.2s",
-                  borderColor: form.speed_mode === val ? col : "transparent",
-                  background: form.speed_mode === val ? `${col}15` : "transparent"
+                style={{ padding: "10px 12px", borderRadius: "10px", border: "2px solid", textAlign: "left", cursor: "pointer", transition: "all 0.2s",
+                  borderColor: form.speed_mode === val ? col : "rgba(255,255,255,0.1)",
+                  background: form.speed_mode === val ? `${col}12` : "rgba(255,255,255,0.03)"
                 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "2px" }}>
-                  <span style={{ fontSize: "14px" }}>{icon}</span>
+                <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "4px" }}>
+                  <span style={{ fontSize: "16px" }}>{icon}</span>
                   <span style={{ fontSize: "12px", fontWeight: "600", color: form.speed_mode === val ? col : "rgba(240,236,228,0.6)" }}>{title}</span>
-                  {form.speed_mode === val && <span style={{ marginLeft: "auto", fontSize: "10px", color: col, background: `${col}20`, padding: "1px 6px", borderRadius: "8px" }}>выбрано</span>}
                 </div>
-                <div style={{ paddingLeft: "20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ fontSize: "10px", color: "rgba(240,236,228,0.35)" }}>{desc}</span>
-                  <span style={{ fontSize: "10px", fontWeight: "600", color: form.speed_mode === val ? col : "rgba(240,236,228,0.25)" }}>{price}</span>
-                </div>
+                <div style={{ fontSize: "10px", fontWeight: "600", color: form.speed_mode === val ? col : "rgba(240,236,228,0.25)" }}>{price}</div>
               </button>
             ))}
           </div>
@@ -397,33 +393,45 @@ export default function TravelCalculator() {
             </div>
 
             {/* Totals */}
-            <div style={{ background:"rgba(249,217,118,0.07)", border:"1px solid rgba(249,217,118,0.18)", borderRadius:"16px", padding:"18px 22px", marginBottom:"16px", display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:"12px" }}>
-              <div>
-                <div style={{ fontSize:"17px", fontWeight:"700", marginBottom:"3px" }}>🗺️ {result.destination}</div>
-                <div style={{ fontSize:"11px", color:"rgba(240,236,228,0.4)", display:"flex", gap:"6px", alignItems:"center" }}>
-                {result.days} дней · {result.people} чел · {result.currency}
-                <span style={{ padding:"1px 7px", borderRadius:"8px", fontSize:"10px",
+            <div style={{ background:"rgba(249,217,118,0.07)", border:"1px solid rgba(249,217,118,0.18)", borderRadius:"16px", padding:"16px", marginBottom:"16px" }}>
+              {/* Top row: destination + badge */}
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:"12px", flexWrap:"wrap", gap:"6px" }}>
+                <div>
+                  <div style={{ fontSize:"16px", fontWeight:"700", marginBottom:"2px" }}>🗺️ {result.destination}</div>
+                  <div style={{ fontSize:"11px", color:"rgba(240,236,228,0.4)" }}>{result.days} дней · {result.people} чел · {result.currency}</div>
+                </div>
+                <span style={{ padding:"3px 9px", borderRadius:"8px", fontSize:"10px", whiteSpace:"nowrap",
                   background: result.speed_mode==="fast" ? "rgba(110,231,183,0.15)" : "rgba(249,217,118,0.15)",
                   color: result.speed_mode==="fast" ? "#6ee7b7" : "#f9d976" }}>
                   {result.speed_mode==="fast" ? "⚡ из базы знаний" : "🔍 актуальные цены"}
                 </span>
               </div>
-              </div>
-              <div style={{ display:"flex", gap:"20px", alignItems:"center" }}>
-                {[["ИТОГО", result.grandTotal, "38px", "linear-gradient(90deg,#f9d976,#f39f86)"],["НА ЧЕЛОВЕКА", result.grandTotalPerPerson, "24px", "#f9d976"],["В ДЕНЬ/ЧЕЛ", result.grandTotalPerPerson/result.days, "24px", "#f39f86"]].map(([label, val, size, color], i) => (
-                  <div key={i} style={{ textAlign:"center" }}>
-                    <div style={{ fontSize:"10px", color:"rgba(240,236,228,0.35)", marginBottom:"2px" }}>{label}</div>
-                    <div style={{ fontSize:size, fontWeight:"700", background: color.includes("gradient") ? color : undefined, color: color.includes("gradient") ? undefined : color, WebkitBackgroundClip: color.includes("gradient") ? "text" : undefined, WebkitTextFillColor: color.includes("gradient") ? "transparent" : undefined }}>{fmt(val, result.currency)}</div>
-                  </div>
-                ))}
+              {/* Bottom row: 3 stats */}
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:"8px" }}>
+                <div style={{ background:"rgba(255,255,255,0.05)", borderRadius:"10px", padding:"10px", textAlign:"center" }}>
+                  <div style={{ fontSize:"9px", color:"rgba(240,236,228,0.35)", letterSpacing:"0.5px", marginBottom:"4px" }}>ИТОГО</div>
+                  <div style={{ fontSize:"18px", fontWeight:"700", background:"linear-gradient(90deg,#f9d976,#f39f86)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", lineHeight:1.2 }}>{fmt(result.grandTotal, result.currency)}</div>
+                </div>
+                <div style={{ background:"rgba(255,255,255,0.05)", borderRadius:"10px", padding:"10px", textAlign:"center" }}>
+                  <div style={{ fontSize:"9px", color:"rgba(240,236,228,0.35)", letterSpacing:"0.5px", marginBottom:"4px" }}>НА ЧЕЛОВЕКА</div>
+                  <div style={{ fontSize:"16px", fontWeight:"700", color:"#f9d976", lineHeight:1.2 }}>{fmt(result.grandTotalPerPerson, result.currency)}</div>
+                </div>
+                <div style={{ background:"rgba(255,255,255,0.05)", borderRadius:"10px", padding:"10px", textAlign:"center" }}>
+                  <div style={{ fontSize:"9px", color:"rgba(240,236,228,0.35)", letterSpacing:"0.5px", marginBottom:"4px" }}>В ДЕНЬ/ЧЕЛ</div>
+                  <div style={{ fontSize:"16px", fontWeight:"700", color:"#f39f86", lineHeight:1.2 }}>{fmt(result.grandTotalPerPerson/result.days, result.currency)}</div>
+                </div>
               </div>
             </div>
 
-            {/* Tabs */}
-            <div style={{ display:"flex", gap:"6px", marginBottom:"14px" }}>
-              {[["dashboard","📊 Дашборд"],["details","📋 По категориям"],["sources","🔗 Источники"],["tips","💡 Советы"]].map(([tab,label]) => (
+            {/* Tabs — horizontally scrollable on mobile */}
+            <div style={{ display:"flex", gap:"6px", marginBottom:"14px", overflowX:"auto", paddingBottom:"4px", WebkitOverflowScrolling:"touch", scrollbarWidth:"none" }}>
+              {[["dashboard","📊 Дашборд"],["details","📋 Категории"],["sources","🔗 Источники"],["tips","💡 Советы"]].map(([tab,label]) => (
                 <button key={tab} onClick={() => setActiveTab(tab)}
-                  style={{ padding:"8px 15px", borderRadius:"9px", border:"1px solid", borderColor: activeTab===tab?"#f9d976":"rgba(255,255,255,0.1)", background: activeTab===tab?"rgba(249,217,118,0.1)":"rgba(255,255,255,0.03)", color: activeTab===tab?"#f9d976":"rgba(240,236,228,0.45)", fontSize:"12px", cursor:"pointer", fontWeight: activeTab===tab?"600":"400" }}>{label}</button>
+                  style={{ padding:"8px 14px", borderRadius:"9px", border:"1px solid", whiteSpace:"nowrap", flexShrink:0,
+                    borderColor: activeTab===tab?"#f9d976":"rgba(255,255,255,0.1)",
+                    background: activeTab===tab?"rgba(249,217,118,0.1)":"rgba(255,255,255,0.03)",
+                    color: activeTab===tab?"#f9d976":"rgba(240,236,228,0.45)",
+                    fontSize:"12px", cursor:"pointer", fontWeight: activeTab===tab?"600":"400" }}>{label}</button>
               ))}
             </div>
 
